@@ -67,6 +67,7 @@ return {
         v_dictionary={
 			a_hand_chipmult="Adding: #1#",
 			speed_demon_timeout = ":("
+			--time_mark = "#3# seconds left"
 		},
     },
 }

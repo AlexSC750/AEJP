@@ -167,7 +167,7 @@ SMODS.Joker {
 	blueprint_compat = true,
 	pos = { x = 0, y = 1 },
 	decaying = true,
-	config = { extra = { emult = 1.5 , emult_gain = 0.5, time_left = 180, done_for = false} },
+	config = { extra = { emult = 1.5 , emult_gain = 0.5, time_left = 10, done_for = false} },
 	config_decay = {extra = { time_left = 1}},
 	decay_timeout= {extra = { time_left = {
 		threshold = 0,
@@ -224,6 +224,11 @@ SMODS.Joker {
 		if card.ability.extra.done_for and card.config.center.decaying then
 			card.ability.extra.emult = 0
 			card.config.center.decaying = false
+			if SMODS.Mods["Cryptid"] then
+				card.ability.cry_absolute = true
+			else
+				card:set_eternal(true)
+			end
 			return {
 				message = localize { type = 'variable', key = 'speed_demon_timeout', vars = { } },
 			}
