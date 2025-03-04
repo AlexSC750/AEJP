@@ -118,6 +118,8 @@ SMODS.Joker {
 	end
 }
 
+
+
 function walkAndDecay(card, m, substract, delta, timeout)
 	for k,v in pairs(m) do
 		if substract[k] then
@@ -130,7 +132,7 @@ function walkAndDecay(card, m, substract, delta, timeout)
 					if m[k] <= t.threshold then
 						m[k] = math.max(t.threshold, m[k])
 						if not t.has_hit then
-							t.callback(card, t.has_hit)
+							t.callback(card)
 						end
 					end
 				end
@@ -151,7 +153,7 @@ function Game:update(dt)
 	if G.GAME and G.jokers then
 		for _,v in ipairs(G.jokers.cards) do
 			if v.config.center.config_decay then
-				walkAndDecay(v, v.ability, v.config.center.config_decay, dt, v.config.center.decay_timeout)
+				walkAndDecay(v, v.ability, v.config.center.config_decay, dt, v.config.center.decay_timeout or nil)
 			end
 		end
 	end
@@ -164,8 +166,16 @@ SMODS.Joker {
 	discovered = true,
 	blueprint_compat = true,
 	pos = { x = 0, y = 1 },
+	decaying = true,
 	config = { extra = { emult = 1.5 , emult_gain = 0.5, time_left = 180, done_for = false} },
 	config_decay = {extra = { time_left = 1}},
+	decay_timeout= {extra = { time_left = {
+		threshold = 0,
+		has_hit = false,
+		callback = function (card)
+			card.ability.extra.done_for = true
+		end
+	}}},
 	loc_vars = function(self, info_queue, card)
 		return { vars = { 
 			secondsToMins(card.ability.extra.time_left),
@@ -187,23 +197,36 @@ SMODS.Joker {
 				message = localize { type = 'variable', key = 'a_powmult', vars = { card.ability.extra.emult } }
 			}
 		end
-		if context.end_of_round and context.individual and context.blind.boss then
+		if context.end_of_round and context.individual and G.GAME.blind:get_type() == "Boss" then
 			if card.ability.extra.done_for then
 				card.ability.extra.done_for = false
 				card.ability.extra.emult = 1.5
 			else
 				card.ability.extra.emult = card.ability.extra.emult + card.ability.extra.emult_gain
 			end
+			card.ability.extra.time_left = 180
 	 	end
 		if context.skip_blind then
-			card.ability.extra.emult = math.max(card.ability.extra.emult - (card.ability.extra.emult_gain * 2), 1)
+			card.ability.extra.emult = math.max(card.ability.extra.emult - card.ability.extra.emult_gain, 1)
 		end
-		-- if context.clock then
-		-- 	card.ability.extra.time_left = math.max(card.ability.extra.time_left - context.sec_passed, 0)
-		-- end
-		if card.ability.extra.time_left <= 0 then
-			card.ability.extra.done_for = true
+		if context.setting_blind then
+			local tag = nil
+			local type = G.GAME.blind:get_type()
+			if type ~= "Boss" then
+				tag = Tag(G.GAME.round_resets.blind_tags[type])
+				add_tag(tag)
+				play_sound("tarot1")
+			end
+		end
+		if context.ending_shop then
+			card.config.center.decaying = true
+		end
+		if card.ability.extra.done_for and card.config.center.decaying then
 			card.ability.extra.emult = 0
+			card.config.center.decaying = false
+			return {
+				message = localize { type = 'variable', key = 'speed_demon_timeout', vars = { } },
+			}
 		end
 	end
 }

@@ -66,6 +66,7 @@ return {
 	misc = {
         v_dictionary={
 			a_hand_chipmult="Adding: #1#",
+			speed_demon_timeout = ":("
 		},
     },
 }
