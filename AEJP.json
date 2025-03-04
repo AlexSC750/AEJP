@@ -1,0 +1,14 @@
+{
+	"id": "",
+	"name": "Alex's Esoteric Joker Pack",
+	"display_name": "AEJP",
+	"author": ["AlexSC750"],
+	"description": "Some very weird Joker ideas.",
+	"prefix": "aejp",
+	"main_file": "AEJP.lua",
+	"priority": 233,
+	"badge_colour": "453DD2",
+	"badge_text_colour": "",
+	"version": "0.0.0",
+	"dependencies": []
+}

@@ -1,0 +1,18 @@
+[manifest]
+version = "0.0.0"
+dump_lua = true
+priority = 233
+
+[[patches]]
+[patches.pattern]
+target = "functions/state_events.lua"
+pattern = '''
+if modded then update_hand_text({sound = 'chips2', modded = modded}, {chips = hand_chips, mult = mult}) end'''
+match_indent = true
+position = "after"
+payload = '''
+-- context.just_before
+SMODS.calculate_context({full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands, just_before = true})
+'''
+
+
