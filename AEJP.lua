@@ -167,7 +167,7 @@ SMODS.Joker {
 	blueprint_compat = true,
 	pos = { x = 0, y = 1 },
 	decaying = true,
-	config = { extra = { emult = 1.5 , emult_gain = 0.5, time_left = 10, done_for = false} },
+	config = { extra = { emult = 1.5 , emult_gain = 0.5, time_left = 180, done_for = false} },
 	config_decay = {extra = { time_left = 1}},
 	decay_timeout= {extra = { time_left = {
 		threshold = 0,
