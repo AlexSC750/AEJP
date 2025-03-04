@@ -224,6 +224,11 @@ SMODS.Joker {
 		if card.ability.extra.done_for and card.config.center.decaying then
 			card.ability.extra.emult = 0
 			card.config.center.decaying = false
+			if SMODS.Mods["Cryptid"] then
+				card.ability.cry_absolute = true
+			else
+				card:set_eternal(true)
+			end
 			return {
 				message = localize { type = 'variable', key = 'speed_demon_timeout', vars = { } },
 			}
