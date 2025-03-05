@@ -21,8 +21,19 @@ function loc_colour(_c, _default)
 	G.ARGS.LOC_COLOURS.weird = HEX("a28cff")
 	G.ARGS.LOC_COLOURS.full_black = HEX("000000")
 	G.ARGS.LOC_COLOURS.full_red = HEX("FF0000")
+	G.ARGS.LOC_COLOURS.crimson_red = HEX("AC3232")
 	return lc(_c, _default)
 end
+
+SMODS.Sound({
+	key = "speeddemon_refill",
+	path = "WarTimerUp.wav"
+})
+
+SMODS.Sound({
+	key = "speeddemon_spawn",
+	path = "WarTimer.wav"
+})
 
 SMODS.Blind {
 	key = "unknown",
@@ -75,7 +86,9 @@ SMODS.Joker {
 	end
 }
 
-SMODS.Joker { -- we get there when we get there (procrastinating)
+G.aejp_tsarlist = {}
+
+SMODS.Joker { -- we get there when we get there (WE GOT THERE)
 	key = 'bell',
 	rarity = "aejp_unreasonable",
 	atlas = 'temp',
@@ -83,8 +96,6 @@ SMODS.Joker { -- we get there when we get there (procrastinating)
 	discovered = true,
 	pos = { x = 1, y = 0 },
 	cost = 25,
-	-- calculate = function(self, card, context)
-	-- end
 }
 
 SMODS.Joker {
@@ -118,22 +129,18 @@ SMODS.Joker {
 	end
 }
 
-
-
-function walkAndDecay(card, m, substract, delta, timeout)
+function walkAndDecay(card, m, substract, delta)
 	for k,v in pairs(m) do
 		if substract[k] then
 			if type(v) == "table" then
-				walkAndDecay(card, v, substract[k], delta, timeout[k])
+				walkAndDecay(card, v, substract[k], delta)
 			else
-				m[k] = m[k] - (substract[k] * delta)
-				if timeout then
-					local t = timeout[k]
-					if m[k] <= t.threshold then
-						m[k] = math.max(t.threshold, m[k])
-						if not t.has_hit then
-							t.callback(card)
-						end
+				local t = substract[k]
+				m[k] = m[k] - (t.decay * delta)
+				if m[k] <= t.threshold then
+					m[k] = math.max(t.threshold, m[k])
+					if not t.has_hit then
+						t.has_hit = t.callback(card)
 					end
 				end
 			end
@@ -146,6 +153,36 @@ function secondsToMins(seconds)
 	return string.format("%02d", math.floor(seconds/60))..":"..string.format("%02d", math.floor(math.fmod(seconds, 60)))
 end
 
+function get_stickers(card)
+	if SMODS.Mods["Cryptid"] then
+		return {
+			eternal = card.ability.eternal,
+			perishable = card.ability.perishable,
+			rental = card.ability.rental,
+			absolute = card.ability.cry_absolute,
+			banana = card.ability.banana,
+		}
+	else
+		return {
+			eternal = card.ability.eternal,
+			perishable = card.ability.perishable,
+			rental = card.ability.rental,
+			absolute = false,
+			banana = false
+		}
+	end
+end
+
+function set_stickers(card, slist)
+	card:set_eternal(slist.eternal and not slist.absolute)
+	card.ability.perishable = slist.perishable
+	card:set_rental(slist.rental)
+	if SMODS.Mods["Cryptid"] then
+		card.ability.cry_absolute = slist.absolute
+		card.ability.banana = slist.banana
+	end
+end
+
 -- update fork for rta jokers
 local upd = Game.update
 function Game:update(dt)
@@ -153,7 +190,7 @@ function Game:update(dt)
 	if G.GAME and G.jokers then
 		for _,v in ipairs(G.jokers.cards) do
 			if v.config.center.config_decay then
-				walkAndDecay(v, v.ability, v.config.center.config_decay, dt, v.config.center.decay_timeout or nil)
+				walkAndDecay(v, v.ability, v.config.center.config_decay, dt)
 			end
 		end
 	end
@@ -165,15 +202,62 @@ SMODS.Joker {
 	atlas = 'temp',
 	discovered = true,
 	blueprint_compat = true,
+	immutable = true,
 	pos = { x = 0, y = 1 },
-	decaying = true,
-	config = { extra = { emult = 1.5 , emult_gain = 0.5, time_left = 180, done_for = false} },
-	config_decay = {extra = { time_left = 1}},
-	decay_timeout= {extra = { time_left = {
+	config = { extra = { emult = 1.5 , emult_gain = 0.5, time_left = 180, max_time = 180, done_for = false} },
+	config_decay = {extra = { time_left = {
+		decay = 1,
 		threshold = 0,
 		has_hit = false,
 		callback = function (card)
-			card.ability.extra.done_for = true
+			local isDone = false
+			if not card.ability.extra.done_for then
+				G.E_MANAGER:add_event(Event({
+					trigger = "after",
+					delay = 0,
+					blockable = false,
+					func = function()
+						if card and not card.ability.extra.done_for then
+							card.ability.extra.done_for = true
+							card.ability.extra.emult = 0.1
+							G.E_MANAGER:add_event(Event({
+								func = function()
+									local ded = create_card("Joker", G.jokers, nil, nil, nil, nil, "j_aejp_speeddemonded")
+									ded:set_edition(nil, true, true)
+									if SMODS.Mods["Cryptid"] then
+										ded.ability.cry_absolute = true
+									else
+										ded:set_eternal(true)
+									end
+									ded:add_to_deck()
+									G.jokers:emplace(ded)
+									ded.ability.extra.sticker_table = get_stickers(card)
+									card_eval_status_text( ded, "extra", nil, nil, nil, {
+											message = localize { type = 'variable', key = 'speed_demon_timeout', vars = { } },
+											sound = "talisman_eeemult",
+											colour = G.ARGS.LOC_COLOURS.full_black
+										})
+									G.E_MANAGER:add_event(Event({
+										trigger = "after",
+										delay = 0,
+										blockable = false,
+										func = function()
+											isDone = true
+											G.jokers:remove_card(card)
+											card:remove()
+											card = nil
+											return true
+										end,
+									}))
+									return true
+								end
+							}))
+						end
+						return true
+					end
+				}))
+			end
+			return isDone
 		end
 	}}},
 	loc_vars = function(self, info_queue, card)
@@ -184,30 +268,42 @@ SMODS.Joker {
 		} }
 	end,
 	cost = 8,
+	add_to_deck = function ()
+		play_sound("aejp_speeddemon_spawn")
+	end,
 	calculate = function(self, card, context)
 	 	if context.joker_main and not context.debuffed_hand then
-			if card.ability.extra.done_for then
-				return {
-					Emult_mod = 0.1,
-					message = localize { type = 'variable', key = 'a_powmult', vars = { 0.1 } }
-				}
-			end
 			return {
 				Emult_mod = card.ability.extra.emult,
-				message = localize { type = 'variable', key = 'a_powmult', vars = { card.ability.extra.emult } }
+				message = localize { type = 'variable', key = 'a_powmult', vars = { card.ability.extra.emult } },
+				colour = G.C.DARK_EDITION,
 			}
 		end
-		if context.end_of_round and context.individual and G.GAME.blind:get_type() == "Boss" then
-			if card.ability.extra.done_for then
-				card.ability.extra.done_for = false
-				card.ability.extra.emult = 1.5
-			else
+		if context.end_of_round and context.cardarea == G.jokers and not context.retrigger_joker then
+			if G.GAME.blind:get_type() == "Boss" then
 				card.ability.extra.emult = card.ability.extra.emult + card.ability.extra.emult_gain
+				card.ability.extra.time_left = card.ability.extra.max_time
+				return {
+					sound = "aejp_speeddemon_refill",
+					message = localize('k_upgrade_ex'),
+					colour = G.C.DARK_EDITION,
+					pitch = 1.0
+				}
+			else
+				return {
+					sound = "aejp_speeddemon_spawn",
+					message = "["..secondsToMins(card.ability.extra.time_left).."]",
+					colour = G.ARGS.LOC_COLOURS.full_red,
+					pitch = 1.0
+				}
 			end
-			card.ability.extra.time_left = 180
 	 	end
-		if context.skip_blind then
+		if context.skip_blind and not context.retrigger_joker then
 			card.ability.extra.emult = math.max(card.ability.extra.emult - card.ability.extra.emult_gain, 1)
+			return {
+				message = localize {type = "variable", key = "a_emult_minus", vars = {card.ability.extra.emult_gain}},
+				colour = G.ARGS.LOC_COLOURS.crimson_red
+			}
 		end
 		if context.setting_blind then
 			local tag = nil
@@ -215,22 +311,63 @@ SMODS.Joker {
 			if type ~= "Boss" then
 				tag = Tag(G.GAME.round_resets.blind_tags[type])
 				add_tag(tag)
-				play_sound("tarot1")
+				play_sound("generic1", 0.9 + math.random() * 0.1, 0.8)
+				play_sound("holo1", 1.2 + math.random() * 0.1, 0.4)
 			end
 		end
-		if context.ending_shop then
-			card.config.center.decaying = true
-		end
-		if card.ability.extra.done_for and card.config.center.decaying then
-			card.ability.extra.emult = 0
-			card.config.center.decaying = false
-			if SMODS.Mods["Cryptid"] then
-				card.ability.cry_absolute = true
-			else
-				card:set_eternal(true)
-			end
+	end
+}
+
+SMODS.Joker {
+	key = 'speeddemonded', --speed demon fucking dies (tragic)
+	rarity = 3,
+	atlas = 'temp',
+	discovered = true,
+	blueprint_compat = true,
+	pos = { x = 1, y = 1 },
+	cost = 8,
+	no_collection = true,
+	in_pool = function(self,args)
+		return false
+	end,
+	config = {extra = {
+		sticker_table = {}
+	}},
+	calculate = function(self, card, context)
+		if context.joker_main and not context.debuffed_hand then
 			return {
-				message = localize { type = 'variable', key = 'speed_demon_timeout', vars = { } },
+				Emult_mod = 0.1,
+				message = localize { type = 'variable', key = 'a_powmult', vars = { 0.1 } },
+				colour = G.C.crimson_red,
+			}
+		end
+		if context.end_of_round and G.GAME.blind:get_type() == "Boss" and context.cardarea == G.jokers and context.main_eval then
+			G.E_MANAGER:add_event(Event({
+				func = function()
+					local new = create_card("Joker", G.jokers, nil, nil, nil, nil, "j_aejp_speeddemon")
+					if SMODS.Mods["Cryptid"] then
+						card.ability.cry_absolute = false
+					end
+					card:set_eternal(false)
+					set_stickers(new, card.ability.extra.sticker_table)
+					new:add_to_deck()
+					G.jokers:emplace(new)
+					G.E_MANAGER:add_event(Event({
+						blockable = false,
+						func = function()
+							G.jokers:remove_card(card)
+							card:remove()
+							card = nil
+							return true
+						end,
+					}))
+					return true
+				end
+			}))
+			return {
+				message = localize { type = 'variable', key = 'speed_demon_avenge', vars = { } },
+				colour = G.ARGS.LOC_COLOURS.full_black,
+				volume = 0.65
 			}
 		end
 	end
@@ -242,21 +379,45 @@ SMODS.Joker {
 	atlas = 'temp',
 	discovered = true,
 	blueprint_compat = true,
-	pos = { x = 1, y = 1 },
+	pos = { x = 2, y = 1 },
 	cost = 8,
 	config = {extra = {emult = 3}},
-	config_decay = {extra = {emult = 0.01}},
-	decay_timeout = {extra = {emult = {
+	config_decay = {extra = {emult = {
+		decay = 0.01,
 		threshold = 1,
 		has_hit = false,
 		callback = function (card)
-			card.config.center.queued_to_die = true
+			local isDone = false
+			if not card.ability.extra.done_for then
+				G.E_MANAGER:add_event(Event({
+					func = function()
+						play_sound("tarot1")
+						card.T.r = -0.2
+						card:juice_up(0.3, 0.4)
+						card.states.drag.is = true
+						card.children.center.pinch.x = true
+						G.E_MANAGER:add_event(Event({
+							trigger = "after",
+							delay = 0.3,
+							blockable = false,
+							func = function()
+								isDone = true
+								G.jokers:remove_card(card)
+								card:remove()
+								card = nil
+								return true
+							end,
+						}))
+						return true
+					end,
+				}))
+				end
+			return isDone
 		end
 	}}},
-	queued_to_die = false,
 	loc_vars = function(self, info_queue, card)
 		local a = card.ability.extra.emult
-		local b = card.config.center.config_decay.extra.emult
+		local b = card.config.center.config_decay.extra.emult.decay
 		return { vars = { 
 			a,
 			b,
@@ -266,6 +427,7 @@ SMODS.Joker {
 	calculate = function(self, card, context)
 		if context.joker_main and not context.debuffed_hand then
 			return {
+				colour = G.C.DARK_EDITION,
 				Emult_mod = card.ability.extra.emult,
 				message = localize { type = 'variable', key = 'a_powmult', vars = { card.ability.extra.emult } }
 			}
@@ -290,7 +452,6 @@ SMODS.Joker {
 							return true
 						end,
 					}))
-					
 					return true
 				end,
 			}))

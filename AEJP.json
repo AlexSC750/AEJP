@@ -10,5 +10,5 @@
 	"badge_colour": "453DD2",
 	"badge_text_colour": "",
 	"version": "0.0.0",
-	"dependencies": []
+	"dependencies": ["Talisman"]
 }

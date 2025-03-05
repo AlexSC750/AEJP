@@ -1,7 +1,5 @@
 return {
     descriptions = {
-        -- this key should match the set ("object type") of your object,
-        -- e.g. Voucher, Tarot, or the key of a modded consumable type
 		Blind={
 			bl_aejp_unknown = {
 				name = "Umber Unknown",
@@ -12,7 +10,6 @@ return {
 			}
 		},
         Joker = {
-            -- this should be the full key of your object, including any prefixes
             j_aejp_quasilinear = {
 				name = 'Quasilinear',
 				text = {
@@ -25,7 +22,6 @@ return {
 				text = {
 					"Retrigger the {C:weird}score calculation process",
 					"on the {C:attention}final hand{} of round",
-					"{C:inactive,s:0.75}T.B.A" --wakey wakey
 				}
             },
 			j_aejp_dropdown = {
@@ -47,11 +43,14 @@ return {
 					"On selecting a blind, gain its tag",
 					"{C:inactive,s:0.75}BTW, stop reading this.",
 				},
-				text_alt = {
+            },
+			j_aejp_speeddemonded = {
+				name = 'Speed Demon',
+				text = {
 					"{X:dark_edition,C:white}^0.1{} Mult",
 					"Reverts back on beating a Boss Blind",
 					"{C:inactive,s:0.75}Disappointment.",
-				}
+				},
             },
 			j_aejp_lollipop = {
 				name = 'Lollipop',
@@ -66,7 +65,10 @@ return {
 	misc = {
         v_dictionary={
 			a_hand_chipmult="Adding: #1#",
-			speed_demon_timeout = ":("
+			speed_demon_timeout = ":(",
+			speed_demon_avenge = ":)",
+			a_emult_minus = "-^#1# Mult",
+			full_retrigger = "Do it again..."
 		},
     },
 }
