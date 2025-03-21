@@ -1,5 +1,5 @@
 {
-	"id": "",
+	"id": "AEJP",
 	"name": "Alex's Esoteric Joker Pack",
 	"display_name": "AEJP",
 	"author": ["AlexSC750"],
@@ -10,5 +10,5 @@
 	"badge_colour": "453DD2",
 	"badge_text_colour": "",
 	"version": "0.0.0",
-	"dependencies": ["Talisman"]
+	"dependencies": ["Talisman", "Steamodded (>=1.0.0~BETA-0321b)"]
 }
